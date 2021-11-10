@@ -58,31 +58,47 @@ function mainMenu() {
         console.log(menuSelect);
         switch (menuSelect) {
             case menuPrompt.allDepts:
-                console.log('Returning to the main menu')
                 renderAllDepts();
                 break;
-            default:
-                console.log('Exiting')
+            case menuPrompt.allRoles:
+                renderAllRoles();
+                break;
+            case menuPrompt.exit:
                 db.end()
                 return;
+            default:
+                mainMenu();
         }
     })
 };
 
-function renderAllDepts() {
-    console.log("Render all Departments\n")
+async function renderAllDepts() {
+    console.clear()
+    console.log("View all Departments\n")
     const sql = `SELECT department.id as ID, department.name as Department
     FROM department
     ORDER BY id;`
     return db.promise().query(sql)
     .then(([rows,fields]) => {
         console.table(rows)
-        console.log("\n")
+        // console.log("\n")
     })
-    .then(() => mainMenu())
     .catch((error) => console.log(error))
+    .then(() => mainMenu())
+};
+async function renderAllRoles() {
+    console.clear()
+    console.log("View all Roles\n")
+    const sql = `SELECT role.id as ID, role.title as Title, role.salary as Salary, department.name as Department
+    FROM role
+    JOIN department on role.department_id = department.id
+    ORDER BY id;`
+    return db.promise().query(sql)
+    .then(([rows,fields]) => {
+        console.table(rows)
+    })
+    .catch((error) => console.log(error))
+    .then(() => mainMenu())
 };
 
-
-// mainMenu();
 
