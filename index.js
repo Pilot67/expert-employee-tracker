@@ -72,6 +72,9 @@ function mainMenu() {
             case menuPrompt.addRole:
                 addRole();
                 break;
+            case menuPrompt.addEmployee:
+                addEmployee();
+                break;
             case menuPrompt.exit:
                 db.end()
                 return;
@@ -150,7 +153,7 @@ function addDept() {
 
 function addRole() {
     console.clear();
-    console.log('Adding a new Role');
+    console.log('Adding a new Role\n');
     const sql = `SELECT department.name as Department, department.id as ID FROM department ORDER BY department.id;`
     return db.promise().query(sql)
     .then(([rows,fields]) => {
@@ -184,9 +187,76 @@ function addRole() {
             .catch((err) => console.log('500',err))
             .then(() => {
                 mainMenu()
-            });
-            
+            });            
         })
     })
     .catch((err) => console.log('500',err))
 }
+function addEmployee() {
+    console.clear();
+    console.log('Adding a new Employee\n');
+    const roleSql = `SELECT role.title as role, role.id as ID 
+                FROM role ORDER BY role;`
+    const managerSql = `SELECT concat(employee.first_name, " ", employee.last_name) as managerName, employee.id as ID
+                FROM employee ORDER BY managerName;`
+    return db.promise().query(roleSql)
+    .then(([roleSearch,fields]) => {
+        return db.promise().query(managerSql)
+        .then(([managerSearch, err]) => {
+            const roleList = roleSearch.map((item) => item.role)
+            const managerList = managerSearch.map((item) => item.managerName)
+            managerSearch.unshift({managerName:"No Manager", ID:null})
+            managerList.unshift('No Manager')
+            inquirer.prompt([
+                {
+                    name: "newFirstName",
+                    type: "input",
+                    message: "Input the employee's First Name"
+                },
+                {
+                    name: "newLastName",
+                    type: "input",
+                    message: "Input the employee's Last Name"
+                },
+                {
+                    name: "newRole",
+                    type: "list",
+                    message: "Choose from the list the employee's role",
+                    choices: roleList
+                },
+                {
+                    name: "newManager",
+                    type: "list",
+                    message:"Choose from the list the employee's manager",
+                    choices: managerList
+                },
+            ])
+            .then((answers) => {
+                const selRole = roleSearch.filter((item) => item.role === answers.newRole)
+                const selManager = managerSearch.filter((item) => item.managerName === answers.newManager)
+                // console.log(selRole)
+                // console.log(selManager)
+                const sql = `INSERT INTO employee (title, salary, department_id) VALUES (?,?,?)`
+                return
+            })
+
+        })
+    
+    
+        // .then((answers) => {
+        //     const sql = `INSERT INTO role (title, salary, department_id) VALUES (?,?,?)`
+        //     const selRow = rows.filter((item) => item.Department === answers.department)
+        //     const params = [answers.newRole.trim(),answers.newSalary,selRow[0].ID]
+            // return db.promise().query(sql,params)
+            // .then((res, err) => {
+            //     console.log('New Role Added \n')
+            // })
+            // .catch((err) => console.log('500',err))
+            // .then(() => {
+            //     mainMenu()
+            // });            
+        // })
+    })
+    .catch((err) => console.log('500',err))
+}
+
