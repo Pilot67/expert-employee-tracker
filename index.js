@@ -175,7 +175,8 @@ function addRole() {
         ])
         .then((answers) => {
             const sql = `INSERT INTO role (title, salary, department_id) VALUES (?,?,?)`
-            const params = [answers.newRole.trim(),answers.newSalary,deptList.indexOf(answers.department)+1]
+            const selRow = rows.filter((item) => item.Department === answers.department)
+            const params = [answers.newRole.trim(),answers.newSalary,selRow[0].ID]
             return db.promise().query(sql,params)
             .then((res, err) => {
                 console.log('New Role Added \n')
