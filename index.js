@@ -12,6 +12,8 @@ const menuPrompt = {
     addEmployee: "Add an Employee",
     updtaeEmployeeRole: "Update an Employee Role",
     updateEmployeeMgr: "Update Employee's Manager",
+    deleteData: "Delete Department, Role or Employee",
+    combinedSalaries: "Display Salary Totals by Department",
     exit: "Exit"
 };
 
@@ -50,6 +52,8 @@ function mainMenu() {
                 menuPrompt.addEmployee,
                 menuPrompt.updtaeEmployeeRole,
                 menuPrompt.updateEmployeeMgr,
+                menuPrompt.deleteData,
+                menuPrompt.combinedSalaries,
                 menuPrompt.exit
                 ]
         }
@@ -81,6 +85,12 @@ function mainMenu() {
             case menuPrompt.updateEmployeeMgr:
                 updateEmployeeMgr();
                 break;
+            case menuPrompt.deleteData:
+                deleteData()
+                return;
+            case menuPrompt.combinedSalaries:
+                renderCombinedSalaries()
+                return;
             case menuPrompt.exit:
                 db.end()
                 return;
@@ -323,4 +333,204 @@ function updateEmployeeMgr() {
         })
 
     })
+}
+function deleteData() {
+    console.clear()
+    inquirer.prompt([
+        {
+            name:"deleteSelect",
+            type: "list",
+            message: "Select the data you would like to delete",
+            choices: [
+                {
+                    name: "Department",
+                    short: "Department Selected"
+                },
+                {
+                    name: "Role",
+                    short: "Role Selected"
+                },
+                {
+                    name: "Employee",
+                    short: "Employee Selected"
+                },
+                {
+                    name: "Exit Menu",
+                    short: "Exit Delete Menu"
+                },
+            ]
+        }
+    ])
+    .then(({deleteSelect}) => {
+        console.log(deleteSelect)
+        switch (deleteSelect){
+            case "Department":
+                deleteDepartment()
+                break;
+            case "Role":
+                deleteRole()
+                break;
+            case "Employee":
+                deleteEmployee()
+                break;
+            default:
+                mainMenu()
+        }
+    })
+}
+
+function deleteDepartment() {
+    console.clear()
+    console.log("Delete Department\n")
+    const sql = `SELECT department.id as ID, department.name as Department FROM department ORDER BY id;`
+    return db.promise().query(sql)
+    .then(([rows,fields]) => {
+        const selDept = rows.map(({ID, Department })=> ({name: Department, value: ID, short: `${Department} Selected`}))
+        inquirer.prompt(
+            {
+                name: "id",
+                message: "Select the department to delete",
+                type: "list",
+                choices: selDept
+            }
+        )
+        .then(({id}) => {
+            inquirer.prompt({
+                name: "yesNo",
+                message: `Are you sure you want to delete ${selDept[selDept.findIndex(({value}) => value === id)].name}?`,
+                type: "list",
+                choices: [{name: "Yes", value: true},{name: "No", value: false}]
+            })
+            .then(({yesNo}) =>{
+                if (yesNo){
+                    const sql = `DELETE FROM department WHERE id=?;`
+                    const params = [id]
+                    return db.promise().query(sql,params)
+                    .then(() => console.log(`Department Deleted !`))
+                    .then(() => mainMenu())
+                }else{
+                    mainMenu()
+                }
+            })
+            
+            
+
+        })
+    })
+    .catch((error) => console.log(error))
+}
+function deleteRole(){
+    console.clear()
+    console.log("Delete Role\n")
+    const sql = `SELECT role.title as Title, role.id as ID FROM role ORDER BY Title;`
+    return db.promise().query(sql)
+    .then(([rows,fields]) => {
+        const selRole = rows.map(({Title, ID})=> ({name: Title, value: ID, short: `${Title} Selected`}))
+        inquirer.prompt(
+            {
+                name: "id",
+                message: "Select the department to delete",
+                type: "list",
+                choices: selRole
+            }
+        )
+        .then(({id}) => {
+            inquirer.prompt({
+                name: "yesNo",
+                message: `Are you sure you want to delete ${selRole[selRole.findIndex(({value}) => value === id)].name}?`,
+                type: "list",
+                choices: [{name: "Yes", value: true},{name: "No", value: false}]
+            })
+            .then(({yesNo}) =>{
+                if (yesNo){
+                    const sql = `DELETE FROM role WHERE id=?;`
+                    const params = [id]
+                    return db.promise().query(sql,params)
+                    .then(() => console.log(`Role Deleted !`))
+                    .then(() => mainMenu())
+                }else{
+                    mainMenu()
+                }
+            })
+        })
+    })
+    .catch((error) => console.log(error))
+}
+function deleteEmployee(){
+    console.clear()
+    console.log("Delete Employee\n")
+    const sql = `SELECT concat(employee.first_name, " ", employee.last_name) as Employee, employee.id as ID FROM employee ORDER BY Employee;`
+    return db.promise().query(sql)
+    .then(([rows,fields]) => {
+        const selEmployee = rows.map(({Employee, ID})=> ({name: Employee, value: ID, short: `${Employee} Selected`}))
+        inquirer.prompt(
+            {
+                name: "id",
+                message: "Select the Employee to delete",
+                type: "list",
+                choices: selEmployee
+            }
+        )
+        .then(({id}) => {
+            inquirer.prompt({
+                name: "yesNo",
+                message: `Are you sure you want to delete ${selEmployee[selEmployee.findIndex(({value}) => value === id)].name}?`,
+                type: "list",
+                choices: [{name: "Yes", value: true},{name: "No", value: false}]
+            })
+            .then(({yesNo}) =>{
+                if (yesNo){
+                    const sql = `DELETE FROM employee WHERE id=?;`
+                    const params = [id]
+                    return db.promise().query(sql,params)
+                    .then(() => console.log(`Employee Deleted !`))
+                    .then(() => mainMenu())
+                }else{
+                    console.clear()
+                    mainMenu()
+                }
+            })
+        })
+    })
+    .catch((error) => console.log(error))
+}
+function renderCombinedSalaries(){
+    console.clear()
+    console.log("Display Combined Salaries by Department\n")
+    const sql = `SELECT department.id as ID, department.name as Department FROM department ORDER BY id;`
+    return db.promise().query(sql)
+    .then(([rows,fields]) => {
+        const selDept = rows.map(({ID, Department })=> ({name: Department, value: ID, short: `${Department} Selected`}))
+        selDept.unshift(({name: "All Departments", value: 0, short: `All Departments Selected`}))
+        inquirer.prompt(
+            {
+                name: "id",
+                message: "Select the department to display the salary total",
+                type: "list",
+                choices: selDept
+            }
+        )
+        .then(({id}) => {
+            let sqlSum;
+            if (id >= 1) {
+                sqlSum = `SELECT department.name as Department, SUM(role.salary) as 'Total Salary'
+                FROM role
+                JOIN department on role.department_id = department.id
+                WHERE department.id = ?
+                GROUP BY Department;`
+            } 
+            else {
+                sqlSum = `SELECT department.name as Department, SUM(role.salary) as 'Total Salary'
+                FROM role
+                JOIN department on role.department_id = department.id
+                GROUP BY Department;`
+            };
+            return db.promise().query(sqlSum,id)
+            .then(([rows,fields]) => {
+                console.table(rows)
+            })
+            .catch((error) => console.log(error))
+            .then(() => mainMenu())
+        })
+    })    
 }
