@@ -118,7 +118,7 @@ function renderAllRoles() {
 };
 function renderAllEmployees() {
     console.clear()
-    console.log("View all Roles\n")
+    console.log("View all Employee's\n")
     const sql = `SELECT employee.id as ID, employee.first_name as 'First Name', employee.last_name as 'Last Name', role.title as Title, department.name as Department, role.salary as Salary, concat(manager.first_name, ' ' ,  manager.last_name) as Manager
     FROM employee
     JOIN role ON employee.role_id = role.id
@@ -132,7 +132,6 @@ function renderAllEmployees() {
     .catch((error) => console.log(error))
     .then(() => mainMenu())
 };
-
 function addDept() {
     console.clear();
     console.log('Adding a new Department');
@@ -156,14 +155,13 @@ function addDept() {
         mainMenu();
     });
 };
-
 function addRole() {
     console.clear();
     console.log('Adding a new Role\n');
     const sql = `SELECT department.name as Department, department.id as ID FROM department ORDER BY department.id;`
     return db.promise().query(sql)
     .then(([rows,fields]) => {
-        const deptList = rows.map((item) => item.Department)
+        const deptList = rows.map(({Department, ID}) => ({name: Department, value: ID}))
         inquirer.prompt([
             {
                 name: "newRole",
@@ -184,8 +182,7 @@ function addRole() {
         ])
         .then((answers) => {
             const sql = `INSERT INTO role (title, salary, department_id) VALUES (?,?,?)`
-            const selRow = rows.filter((item) => item.Department === answers.department)
-            const params = [answers.newRole.trim(),answers.newSalary,selRow[0].ID]
+            const params = [answers.newRole.trim(),answers.newSalary,answers.department]
             return db.promise().query(sql,params)
             .then((res, err) => {
                 console.log('New Role Added \n')
@@ -209,10 +206,9 @@ function addEmployee() {
     .then(([roleSearch,fields]) => {
         return db.promise().query(managerSql)
         .then(([managerSearch, err]) => {
-            const roleList = roleSearch.map((item) => item.role)
-            const managerList = managerSearch.map((item) => item.managerName)
-            managerSearch.unshift({managerName:"No Manager", ID:null})
-            managerList.unshift('No Manager')
+            const roleList = roleSearch.map(({role, ID}) => ({name: role, value: ID}))
+            const managerList = managerSearch.map(({managerName, ID}) => ({name: managerName, value: ID}))
+            managerList.unshift({name:"No Manager", value:null})
             inquirer.prompt([
                 {
                     name: "newFirstName",
@@ -238,10 +234,8 @@ function addEmployee() {
                 },
             ])
             .then((answers) => {
-                const selRole = roleSearch.filter((item) => item.role === answers.newRole)
-                const selManager = managerSearch.filter((item) => item.managerName === answers.newManager)
                 const sql = `INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?,?,?,?)`
-                const params = [answers.newFirstName.trim(), answers.newLastName.trim(), selRole[0].ID, selManager[0].ID]
+                const params = [answers.newFirstName.trim(), answers.newLastName.trim(), answers.newRole, answers.newManager]
                 return db.promise().query(sql, params)
                 .then((res, err) => {
                     console.log('New Employee Added \n')
@@ -256,7 +250,6 @@ function addEmployee() {
     })
     .catch((err) => console.log('500',err))
 }
-
 function updateEmployee() {
     console.clear();
     console.log('Updating an Employee\n');
@@ -268,8 +261,8 @@ function updateEmployee() {
     .then(([roleSearch,fields]) => {
         return db.promise().query(employeeSql)
         .then(([employeeSearch, err]) => {
-            const roleList = roleSearch.map((item) => item.role)
-            const employeeList = employeeSearch.map((item) => item.Employee)
+            const roleList = roleSearch.map(({role, ID}) => ({name:role, value:ID}))
+            const employeeList = employeeSearch.map(({Employee, ID}) => ({name: Employee, value:ID}))
             inquirer.prompt([
                 {
                     name: "updateName",
@@ -285,10 +278,8 @@ function updateEmployee() {
                 },
             ])
             .then((answers) => {
-                const selEmployee = employeeSearch.filter((item) => item.Employee === answers.updateName)
-                const selRole = roleSearch.filter((item) => item.role === answers.updateRole)
                 const sql = `UPDATE employee SET role_id = ? WHERE id = ?`
-                const params = [selRole[0].ID, selEmployee[0].ID]
+                const params = [answers.updateRole, answers.updateName]
                 return db.promise().query(sql, params)
                 .then((res, err) => console.log('Updated Employee \n'))
                 .catch((err) => console.log('500',err))
@@ -298,7 +289,6 @@ function updateEmployee() {
         })
     })
 }
-
 function updateEmployeeMgr() {
     console.clear();
     console.log("Updating Employee's Manager\n");
@@ -306,9 +296,9 @@ function updateEmployeeMgr() {
                 FROM employee ORDER BY Employee;`
     return db.promise().query(employeeSql)
     .then(([employeeSearch,fields]) => {
-        const employeeList = employeeSearch.map((item) => item.Employee)
+        const employeeList = employeeSearch.map(({Employee, ID}) => ({ name: Employee, value: ID}))
         const managerList = employeeList.map((item) => item)
-        managerList.unshift('No Manager')
+        managerList.unshift({name:"No Manager", value:null})
         inquirer.prompt([
             {
                 name: "updateName",
@@ -324,11 +314,8 @@ function updateEmployeeMgr() {
             },
         ])
         .then((answers) => {
-            employeeSearch.unshift({Employee:"No Manager", ID:null})
-            const selEmployee = employeeSearch.filter((item) => item.Employee === answers.updateName)
-            const selMgr = employeeSearch.filter((item) => item.Employee === answers.updateMgr)
             const sql = `UPDATE employee SET manager_id = ? WHERE id = ?`
-            const params = [selMgr[0].ID, selEmployee[0].ID]
+            const params = [answers.updateMgr, answers.updateName]
             return db.promise().query(sql, params)
             .then((res, err) => console.log("Updated Employee's Manager \n"))
             .catch((err) => console.log('500',err))
