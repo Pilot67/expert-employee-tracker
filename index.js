@@ -10,7 +10,8 @@ const menuPrompt = {
     adddDept: "Add a Department",
     addRole: "Add a Role",
     addEmployee: "Add an Employee",
-    updtaeEmployeeRole: "Update and Employee Role",
+    updtaeEmployeeRole: "Update an Employee Role",
+    updateEmployeeMgr: "Update Employee's Manager",
     exit: "Exit"
 };
 
@@ -28,14 +29,12 @@ const db = mysql.createConnection(
 db.connect(err => {
     if (err) {
         console.log(err)
-        //throw new Error(err)
     };
     console.log(`Connected to the company_db database.`)
     mainMenu()
 })
 
 function mainMenu() {
-    //console.clear();
     inquirer.prompt([
         {
             name: "menuSelect",
@@ -50,6 +49,7 @@ function mainMenu() {
                 menuPrompt.addRole,
                 menuPrompt.addEmployee,
                 menuPrompt.updtaeEmployeeRole,
+                menuPrompt.updateEmployeeMgr,
                 menuPrompt.exit
                 ]
         }
@@ -74,6 +74,12 @@ function mainMenu() {
                 break;
             case menuPrompt.addEmployee:
                 addEmployee();
+                break;
+            case menuPrompt.updtaeEmployeeRole:
+                updateEmployee();
+                break;
+            case menuPrompt.updateEmployeeMgr:
+                updateEmployeeMgr();
                 break;
             case menuPrompt.exit:
                 db.end()
@@ -234,29 +240,100 @@ function addEmployee() {
             .then((answers) => {
                 const selRole = roleSearch.filter((item) => item.role === answers.newRole)
                 const selManager = managerSearch.filter((item) => item.managerName === answers.newManager)
-                // console.log(selRole)
-                // console.log(selManager)
-                const sql = `INSERT INTO employee (title, salary, department_id) VALUES (?,?,?)`
-                return
+                const sql = `INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?,?,?,?)`
+                const params = [answers.newFirstName.trim(), answers.newLastName.trim(), selRole[0].ID, selManager[0].ID]
+                return db.promise().query(sql, params)
+                .then((res, err) => {
+                    console.log('New Employee Added \n')
+                })
+                .catch((err) => console.log('500',err))
+                .then(() => {
+                    mainMenu()
+                });            
             })
 
         })
-    
-    
-        // .then((answers) => {
-        //     const sql = `INSERT INTO role (title, salary, department_id) VALUES (?,?,?)`
-        //     const selRow = rows.filter((item) => item.Department === answers.department)
-        //     const params = [answers.newRole.trim(),answers.newSalary,selRow[0].ID]
-            // return db.promise().query(sql,params)
-            // .then((res, err) => {
-            //     console.log('New Role Added \n')
-            // })
-            // .catch((err) => console.log('500',err))
-            // .then(() => {
-            //     mainMenu()
-            // });            
-        // })
     })
     .catch((err) => console.log('500',err))
 }
 
+function updateEmployee() {
+    console.clear();
+    console.log('Updating an Employee\n');
+    const employeeSql = `SELECT concat(employee.first_name, " ", employee.last_name) as Employee, employee.id as ID
+                FROM employee ORDER BY Employee;`
+    const roleSql = `SELECT role.title as role, role.id as ID 
+                FROM role ORDER BY role;`
+    return db.promise().query(roleSql)
+    .then(([roleSearch,fields]) => {
+        return db.promise().query(employeeSql)
+        .then(([employeeSearch, err]) => {
+            const roleList = roleSearch.map((item) => item.role)
+            const employeeList = employeeSearch.map((item) => item.Employee)
+            inquirer.prompt([
+                {
+                    name: "updateName",
+                    type: "list",
+                    message:"Choose which Employee to update",
+                    choices: employeeList
+                },
+                {
+                    name: "updateRole",
+                    type: "list",
+                    message: "Choose from the list the employee's new role",
+                    choices: roleList
+                },
+            ])
+            .then((answers) => {
+                const selEmployee = employeeSearch.filter((item) => item.Employee === answers.updateName)
+                const selRole = roleSearch.filter((item) => item.role === answers.updateRole)
+                const sql = `UPDATE employee SET role_id = ? WHERE id = ?`
+                const params = [selRole[0].ID, selEmployee[0].ID]
+                return db.promise().query(sql, params)
+                .then((res, err) => console.log('Updated Employee \n'))
+                .catch((err) => console.log('500',err))
+                .then(() => mainMenu());            
+            })
+
+        })
+    })
+}
+
+function updateEmployeeMgr() {
+    console.clear();
+    console.log("Updating Employee's Manager\n");
+    const employeeSql = `SELECT concat(employee.first_name, " ", employee.last_name) as Employee, employee.id as ID
+                FROM employee ORDER BY Employee;`
+    return db.promise().query(employeeSql)
+    .then(([employeeSearch,fields]) => {
+        const employeeList = employeeSearch.map((item) => item.Employee)
+        const managerList = employeeList.map((item) => item)
+        managerList.unshift('No Manager')
+        inquirer.prompt([
+            {
+                name: "updateName",
+                type: "list",
+                message:"Choose which Employee to update",
+                choices: employeeList
+            },
+            {
+                name: "updateMgr",
+                type: "list",
+                message: "Choose their new Manager",
+                choices: managerList
+            },
+        ])
+        .then((answers) => {
+            employeeSearch.unshift({Employee:"No Manager", ID:null})
+            const selEmployee = employeeSearch.filter((item) => item.Employee === answers.updateName)
+            const selMgr = employeeSearch.filter((item) => item.Employee === answers.updateMgr)
+            const sql = `UPDATE employee SET manager_id = ? WHERE id = ?`
+            const params = [selMgr[0].ID, selEmployee[0].ID]
+            return db.promise().query(sql, params)
+            .then((res, err) => console.log("Updated Employee's Manager \n"))
+            .catch((err) => console.log('500',err))
+            .then(() => mainMenu());            
+        })
+
+    })
+}
