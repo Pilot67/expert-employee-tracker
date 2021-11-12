@@ -13,7 +13,10 @@ const menuPrompt = {
     updtaeEmployeeRole: "Update an Employee Role",
     updateEmployeeMgr: "Update Employee's Manager",
     deleteData: "Delete Department, Role or Employee",
+    viewByDepartment: "View Employees by Department",
+    viewByManager: "View Employees by Manager",
     combinedSalaries: "Display Salary Totals by Department",
+
     exit: "Exit"
 };
 
@@ -33,6 +36,7 @@ db.connect(err => {
         console.log(err)
     };
     console.log(`Connected to the company_db database.`)
+    console.clear()
     mainMenu()
 })
 
@@ -53,6 +57,8 @@ function mainMenu() {
                 menuPrompt.updtaeEmployeeRole,
                 menuPrompt.updateEmployeeMgr,
                 menuPrompt.deleteData,
+                menuPrompt.viewByDepartment,
+                menuPrompt.viewByManager,
                 menuPrompt.combinedSalaries,
                 menuPrompt.exit
                 ]
@@ -87,6 +93,12 @@ function mainMenu() {
                 break;
             case menuPrompt.deleteData:
                 deleteData()
+                return;
+            case menuPrompt.viewByDepartment:
+                viewByDepartment()
+                return;
+            case menuPrompt.viewByManager:
+                viewByManager()
                 return;
             case menuPrompt.combinedSalaries:
                 renderCombinedSalaries()
@@ -153,11 +165,10 @@ function addDept() {
         }
     ])
     .then(({deptName}) => {
-        console.log(`Adding ${deptName} to Departments`)
         const sql = `INSERT INTO department (name) VALUES (?)`
         return db.promise().query(sql,deptName)
         .then((res, err) => {
-            console.log('New department Added')
+            console.log('New department Added\n')
         })
         .catch((err) => console.status('500',err));
     })
@@ -406,7 +417,7 @@ function deleteDepartment() {
                     const sql = `DELETE FROM department WHERE id=?;`
                     const params = [id]
                     return db.promise().query(sql,params)
-                    .then(() => console.log(`Department Deleted !`))
+                    .then(() => console.log(`Department Deleted !\n`))
                     .then(() => mainMenu())
                 }else{
                     mainMenu()
@@ -446,7 +457,7 @@ function deleteRole(){
                     const sql = `DELETE FROM role WHERE id=?;`
                     const params = [id]
                     return db.promise().query(sql,params)
-                    .then(() => console.log(`Role Deleted !`))
+                    .then(() => console.log(`Role Deleted !\n`))
                     .then(() => mainMenu())
                 }else{
                     mainMenu()
@@ -483,7 +494,7 @@ function deleteEmployee(){
                     const sql = `DELETE FROM employee WHERE id=?;`
                     const params = [id]
                     return db.promise().query(sql,params)
-                    .then(() => console.log(`Employee Deleted !`))
+                    .then(() => console.log(`Employee Deleted !\n`))
                     .then(() => mainMenu())
                 }else{
                     console.clear()
@@ -533,4 +544,90 @@ function renderCombinedSalaries(){
             .then(() => mainMenu())
         })
     })    
+}
+function viewByManager() {
+    console.clear()
+    console.log("View By Department\n")
+    const sql = `SELECT  DISTINCT concat(manager.first_name, ' ' ,  manager.last_name) as Manager, employee.manager_id as ID
+    FROM employee
+    LEFT JOIN employee manager ON employee.manager_id = manager.id
+    WHERE employee.manager_id != 'NULL'
+    ORDER BY Manager;`
+    return db.promise().query(sql)
+    .then(([rows,fields]) => {
+        const selDept = rows.map(({Manager, ID})=> ({name: Manager, value: ID, short: `${Manager} Selected`}))
+        selDept.unshift({name:"All Managers", value: 0, short:"All Managers Selected"})
+        inquirer.prompt(
+            {
+                name: "id",
+                message: "Select the department to delete",
+                type: "list",
+                choices: selDept
+            }
+        )
+        .then(({id}) => {
+            let search;
+            if (id >0 ){
+                search = `WHERE employee.manager_id = ${id}`
+            }else{
+                search = `WHERE employee.manager_id != 'NULL'`
+            }
+            const sql = `SELECT concat(manager.first_name, ' ' ,  manager.last_name) as Manager, department.name as Department, employee.id as ID, concat(employee.first_name," ", employee.last_name) as 'Name', role.title as Title,  role.salary as Salary
+            FROM employee
+            JOIN role ON employee.role_id = role.id
+            JOIN department on role.department_id = department.id
+            LEFT JOIN employee manager ON employee.manager_id = manager.id
+            ${search}
+            ORDER BY Manager;`
+            return db.promise().query(sql)
+            })
+            .then(([rows,fields]) => {
+                    console.table(rows)
+            })
+            .catch((error) => console.log(error))
+            .then(() => mainMenu())    
+        })
+}
+
+function viewByDepartment() {
+    console.clear()
+    console.log("View By Department\n")
+    const sql = `SELECT department.id as ID, department.name as Department FROM department ORDER BY id;`
+    return db.promise().query(sql)
+    .then(([rows,fields]) => {
+        const selDept = rows.map(({ID, Department })=> ({name: Department, value: ID, short: `${Department} Selected`}))
+        selDept.unshift({name:"All Departments", value: 0, short:"All Departments Selected"})
+        inquirer.prompt(
+            {
+                name: "id",
+                message: "Select the department to delete",
+                type: "list",
+                choices: selDept
+            }
+        )
+        .then(({id}) => {
+            console.log("View Employee's by Department\n")
+            let search = "";
+            if (id >0) {
+                search = `WHERE department.id = ${id}`
+            }
+            const sql = `SELECT department.name as Department, employee.id as ID, concat(employee.first_name," ", employee.last_name) as 'Name', role.title as Title,  role.salary as Salary, concat(manager.first_name, ' ' ,  manager.last_name) as Manager
+            FROM employee
+            JOIN role ON employee.role_id = role.id
+            JOIN department on role.department_id = department.id
+            LEFT JOIN employee manager ON employee.manager_id = manager.id
+            ${search}
+            ORDER BY ID;`
+            return db.promise().query(sql)
+            })
+            .then(([rows,fields]) => {
+                if (rows.length > 0) {
+                    console.table(rows)
+                }else{
+                    console.log ("\n*** No Employees in this department ***\n")
+                }
+            })
+            .catch((error) => console.log(error))
+            .then(() => mainMenu())    
+    })
 }
