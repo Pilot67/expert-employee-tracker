@@ -30,16 +30,19 @@ const db = mysql.createConnection(
       database: 'company_db'
     },
 );
-    
+
+//Check connection to the database
 db.connect(err => {
     if (err) {
         console.log(err)
+        return
     };
     console.log(`Connected to the company_db database.`)
     console.clear()
     mainMenu()
 })
 
+//Main menu using inquirer
 function mainMenu() {
     inquirer.prompt([
         {
@@ -119,7 +122,6 @@ function renderAllDepts() {
     return db.promise().query(sql)
     .then(([rows,fields]) => {
         console.table(rows)
-        // console.log("\n")
     })
     .catch((error) => console.log(error))
     .then(() => mainMenu())
@@ -127,7 +129,7 @@ function renderAllDepts() {
 function renderAllRoles() {
     console.clear()
     console.log("View all Roles\n")
-    const sql = `SELECT role.title as Title, role.id as ID, department.name as Department, role.salary as Salary
+    const sql = `SELECT role.title as Title, role.id as ID, department.name as Department, CONCAT('$',FORMAT(role.salary,2)) as Salary
     FROM role
     JOIN department on role.department_id = department.id
     ORDER BY Title;`
@@ -141,7 +143,7 @@ function renderAllRoles() {
 function renderAllEmployees() {
     console.clear()
     console.log("View all Employee's\n")
-    const sql = `SELECT employee.id as ID, employee.first_name as 'First Name', employee.last_name as 'Last Name', role.title as Title, department.name as Department, role.salary as Salary, concat(manager.first_name, ' ' ,  manager.last_name) as Manager
+    const sql = `SELECT employee.id as ID, employee.first_name as 'First Name', employee.last_name as 'Last Name', role.title as Title, department.name as Department, CONCAT('$',FORMAT(role.salary,2)) as Salary, concat(manager.first_name, ' ' ,  manager.last_name) as Manager
     FROM employee
     JOIN role ON employee.role_id = role.id
     JOIN department on role.department_id = department.id
@@ -524,14 +526,14 @@ function renderCombinedSalaries(){
         .then(({id}) => {
             let sqlSum;
             if (id >= 1) {
-                sqlSum = `SELECT department.name as Department, SUM(role.salary) as 'Total Salary'
+                sqlSum = `SELECT department.name as Department, CONCAT('$',FORMAT(SUM(role.salary),2)) as 'Total Salary'
                 FROM role
                 JOIN department on role.department_id = department.id
                 WHERE department.id = ?
                 GROUP BY Department;`
             } 
             else {
-                sqlSum = `SELECT department.name as Department, SUM(role.salary) as 'Total Salary'
+                sqlSum = `SELECT department.name as Department, CONCAT('$',FORMAT(SUM(role.salary),2)) as 'Total Salary'
                 FROM role
                 JOIN department on role.department_id = department.id
                 GROUP BY Department;`
@@ -560,7 +562,7 @@ function viewByManager() {
         inquirer.prompt(
             {
                 name: "id",
-                message: "Select the department to delete",
+                message: "Select the Manager to display",
                 type: "list",
                 choices: selDept
             }
@@ -572,7 +574,7 @@ function viewByManager() {
             }else{
                 search = `WHERE employee.manager_id != 'NULL'`
             }
-            const sql = `SELECT concat(manager.first_name, ' ' ,  manager.last_name) as Manager, department.name as Department, employee.id as ID, concat(employee.first_name," ", employee.last_name) as 'Name', role.title as Title,  role.salary as Salary
+            const sql = `SELECT concat(manager.first_name, ' ' ,  manager.last_name) as Manager, department.name as Department, employee.id as ID, concat(employee.first_name," ", employee.last_name) as 'Name', role.title as Title,  CONCAT('$',FORMAT(role.salary,2)) as Salary
             FROM employee
             JOIN role ON employee.role_id = role.id
             JOIN department on role.department_id = department.id
@@ -600,7 +602,7 @@ function viewByDepartment() {
         inquirer.prompt(
             {
                 name: "id",
-                message: "Select the department to delete",
+                message: "Select the department to display",
                 type: "list",
                 choices: selDept
             }
@@ -611,7 +613,7 @@ function viewByDepartment() {
             if (id >0) {
                 search = `WHERE department.id = ${id}`
             }
-            const sql = `SELECT department.name as Department, employee.id as ID, concat(employee.first_name," ", employee.last_name) as 'Name', role.title as Title,  role.salary as Salary, concat(manager.first_name, ' ' ,  manager.last_name) as Manager
+            const sql = `SELECT department.name as Department, employee.id as ID, concat(employee.first_name," ", employee.last_name) as 'Name', role.title as Title,  CONCAT('$',FORMAT(role.salary,2)) as Salary, concat(manager.first_name, ' ' ,  manager.last_name) as Manager
             FROM employee
             JOIN role ON employee.role_id = role.id
             JOIN department on role.department_id = department.id
