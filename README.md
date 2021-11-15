@@ -41,8 +41,11 @@ The above packages can be installed using npm insall at the command prompt.
 ## Usage
 Run the command $ 'npm run start' to initialise the application.  
 You will be prompted with a menu offering a list of view, create and delete options.  
-Select the desired menu item. View items will be displayed on the screen. Follow the prompts  
-to create new emplyee's, role's or departments.  
+![MainMenu](https://user-images.githubusercontent.com/86697483/141708378-d4bc48ef-8d35-4208-b989-8185c3963cab.png)  
+Select the desired menu item. View items will be displayed on the screen.  
+![ViewbyDepartment](https://user-images.githubusercontent.com/86697483/141708468-221a30dd-0729-4422-b853-069768a0b385.png)  
+Follow the prompts to create new emplyee's, role's or departments.  
+![AddEmployee](https://user-images.githubusercontent.com/86697483/141708411-89e5c114-0060-4932-b4ac-531ad1d49149.png)  
 
 <br>
 <p align="right">(<a href="#top">back to top</a>)</p>
