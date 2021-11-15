@@ -39,6 +39,10 @@ db.connect(err => {
     };
     console.log(`Connected to the company_db database.`)
     console.clear()
+    console.log(`****************************************`)
+    console.log(`* Expert Employee Tracking Application *`)
+    console.log(`****************************************\n`)
+
     mainMenu()
 })
 
